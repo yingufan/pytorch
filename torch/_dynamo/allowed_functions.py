@@ -214,6 +214,7 @@ def _allowed_function_ids():
                     deprecated_func.grad,
                     torch.func.vmap,
                     deprecated_func.vmap,
+                    torch.cond,
                 ):
                     continue
 
