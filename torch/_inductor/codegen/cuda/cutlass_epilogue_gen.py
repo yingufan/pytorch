@@ -286,11 +286,16 @@ class CutlassEVTEpilogueArgumentFormatter:
     def reduction(self, dtype, src_dtype, reduction_type, value):
         raise NotImplementedError()
 
-    def _op_to_dtype(self, a, dtype):
+    def _op_to_dtype(self, a, dtype, src_dtype=None):
         assert dtype in (
             "torch.float32",
             "torch.float16",
         ), f"Unsupported dtype: {dtype}"
+        assert src_dtype in (
+            None,
+            "torch.float32",
+            "torch.float16",
+        ), f"Unsupported source dtype: {src_dtype}"
         return a
 
     def getvalue(self, result):

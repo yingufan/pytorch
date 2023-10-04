@@ -1,3 +1,4 @@
+import logging
 from typing import Callable, cast, Dict, List, Optional, Set, Union
 
 from ...autotune_process import CUDABenchmarkRequest
@@ -10,6 +11,7 @@ from ...virtualized import V
 from ..common import IndentedBuffer, Kernel, OpOverrides
 from ..cpp import CppPrinter, DTYPE_TO_CPP
 
+log = logging.getLogger(__name__)
 
 cexpr = CppPrinter().doprint
 
@@ -422,6 +424,31 @@ class CUDATemplateBuffer(TemplateBuffer):
             )
             if last_epilogue_name not in node.get_read_names():
                 return False
+        if node.layout != self.layout:
+            return False
+        try:
+            from torch._inductor.codegen.cuda.cutlass_epilogue_gen import (
+                CutlassEVTEpilogueArgumentFormatter,
+                CutlassEVTEpilogueTypeFormatter,
+            )
+
+            CutlassEVTEpilogueTypeFormatter.ir_to_evt_string(
+                self.name, "anything", [node]
+            )
+            CutlassEVTEpilogueArgumentFormatter.ir_to_evt_argument_string(
+                self.name, [node]
+            )
+        except NotImplementedError as e:
+            not_implemented_op = str(e)
+            if not_implemented_op.startswith("_op_"):
+                not_implemented_op = not_implemented_op[4:]
+                log.warning(
+                    f"Failed to fuse epilogue node {node} into {self.name}, likely due to unsupported operation: {not_implemented_op}"
+                )
+                return False
+            else:
+                raise
+
         return True
 
     def create_fused_buffer(self, node, scheduler: Scheduler) -> "CUDATemplateBuffer":
